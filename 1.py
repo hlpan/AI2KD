@@ -1,17 +1,21 @@
 # coding=utf-8
 from bs4 import BeautifulSoup
-
+import sys
 
 word_list = []
 infl_list = []
-
+infl_index =[]
+file_name = ''
+file_name_value = ''
 
 def set_value_attribute():
     """
     修改源html文件
     给idx:orth 的 value属性赋值
     """
-    Fobj = open("Xian Dai Ying Yi Ci Dian - Wei Zhi.html", "r",
+    global file_name
+    global file_name_value
+    Fobj = open(file_name, "r",
                 encoding="utf-8")
     data = Fobj.read()
     Fobj.close()
@@ -31,44 +35,40 @@ def set_value_attribute():
         # 赋给value
         entry.find('idx:orth')['value'] = the_word
 
-    Fobj = open('my.html', 'w', encoding="utf-8")
+    name_split = file_name.split('.')
+    name_split.insert(-1, '_add_value.')
+    file_name_value = ''.join(name_split)
+    Fobj = open(file_name_value, 'w', encoding="utf-8")
     Fobj.write(str(soup))
     Fobj.close()
     pass
 
 
-def search_inflection(word):
-    """
-    查找一个word的变形
-    """
-    pass
+# def list_all_word():
+#     """
+#     处理字典value的同时，把所有单词列成一个list
+#     """
+#     global word_list
+#     Fobj = open("my.html", "r", encoding="utf-8")
+#     data = Fobj.read()
+#     Fobj.close()
 
-
-def list_all_word():
-    """
-    处理字典value的同时，把所有单词列成一个list
-    """
-    global word_list
-    Fobj = open("my.html", "r", encoding="utf-8")
-    data = Fobj.read()
-    Fobj.close()
-
-    soup = BeautifulSoup(data)
-    # 先找出所有的idx:entry
-    entrylist = soup.findAll("idx:entry")
-    for entry in entrylist:
-        # 单词
-        the_word = entry.word.get_text()
-        # 过滤，如把ABC1改成ABC，如果最后一个字符是数字，就去掉
-        if the_word[-1] <= '9' and the_word[-1] >= '0':
-            the_word = the_word[:-1]
-        # 再做一次
-        if the_word[-1] <= '9' and the_word[-1] >= '0':
-            the_word = the_word[:-1]
-        # 赋给value
-        entry.find('idx:orth')['value'] = the_word
-        #print(the_word)
-        word_list.append(the_word)
+#     soup = BeautifulSoup(data)
+#     # 先找出所有的idx:entry
+#     entrylist = soup.findAll("idx:entry")
+#     for entry in entrylist:
+#         # 单词
+#         the_word = entry.word.get_text()
+#         # 过滤，如把ABC1改成ABC，如果最后一个字符是数字，就去掉
+#         if the_word[-1] <= '9' and the_word[-1] >= '0':
+#             the_word = the_word[:-1]
+#         # 再做一次
+#         if the_word[-1] <= '9' and the_word[-1] >= '0':
+#             the_word = the_word[:-1]
+#         # 赋给value
+#         entry.find('idx:orth')['value'] = the_word
+#         #print(the_word)
+#         word_list.append(the_word)
 
 
 def split_infl_line(line):
@@ -108,6 +108,9 @@ def split_infl_line(line):
 
     orig_and_inf.append(the_orignal_word)
 
+    #索引
+    infl_index.append(the_orignal_word)
+
     # 冒号后面是变形列表
     infl_splited = line_cut[1].split(' ')
     for inflection in infl_splited:
@@ -132,18 +135,18 @@ def split_infl_line(line):
         orig_and_inf.append(inflection)
 
     #去掉重复的
-    f = open("words_to_delete.txt", "w",
-             encoding="utf-8")
+    # f = open("words_to_delete.txt", "w",
+    #          encoding="utf-8")
     for x in range(1, len(orig_and_inf)):
         if orig_and_inf[x] in word_list:
             words_to_delete.append(orig_and_inf[x])
-    if len(words_to_delete) >= 1:
-        f.write("删除的单词是%s" % (words_to_delete))
+    # if len(words_to_delete) >= 1:
+    #     f.write("删除的单词是%s" % (words_to_delete))
     for word_to_delete in words_to_delete:
         orig_and_inf.remove(word_to_delete)
     # 处理干净后，加入列表
     infl_list.append(orig_and_inf)
-    f.close()
+    # f.close()
 
 
 def trim_infletion():
@@ -166,6 +169,42 @@ def trim_infletion():
         for line in lines:
             split_infl_line(line)
 
+
+def add_inflections():
+    """
+    添加变形列表
+    """
+    Fobj = open(file_name_value, "r", encoding="utf-8")
+    data = Fobj.read()
+    Fobj.close()
+    soup = BeautifulSoup(data)
+    entrylist = soup.findAll("idx:entry")
+    for entry in entrylist:
+        #当前的单词
+        word = entry.find('idx:orth')['value']
+        #在infl_list中查找
+        #infl_index是原型，infl_list是变形
+        #所以先在infl_index中查找到位置，再到infl_list中查找
+        if word in infl_index:
+            pos = infl_index.index(word)
+        else:
+            continue
+        if len(infl_list) <= 1:
+                continue
+        idx_infl_tag = soup.new_tag("idx:infl")
+        for x in range(1, len(infl_list[pos])):
+            idx_iform_tag = soup.new_tag("idx:iform", value=infl_list[pos][x])
+            idx_infl_tag.append(idx_iform_tag)
+        #在idx:orth标签后面添加一组标签
+        entry.find("idx:orth").insert_after(idx_infl_tag)
+
+    name_split = file_name.split('.')
+    name_split.insert(-1, '_add_infl.')
+    file_name_infl = ''.join(name_split)
+    Fobj = open(file_name_infl, 'w', encoding="utf-8")
+    Fobj.write(str(soup))
+    Fobj.close()
+
 def main():
     """
     首先，列出所有单词表，到word_list文件
@@ -173,13 +212,20 @@ def main():
     那么在变形列表中删除它
     最后在dict.html文件中，对于每一个单词word,给它添加变形数据列表
     """
-    #set_value_attribute()
-    list_all_word()
-    f = open("wordlist.txt", "w", encoding="utf-8")
-    for word in word_list:
-        f.write("%s\n" % (word))
-    f.close()
-    #trim_infletion()
+    global file_name
+    if len(sys.argv) != 2:
+        print("参数不正确定，请尝试用引号包围文件名。")
+        sys.exit()
+    file_name = sys.argv[1]
+
+    set_value_attribute()
+
+    # f = open("wordlist.txt", "w", encoding="utf-8")
+    # for word in word_list:
+    #     f.write("%s\n" % (word))
+    # f.close()
+    trim_infletion()
+    add_inflections()
 
 if __name__ == '__main__':
     main()
