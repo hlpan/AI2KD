@@ -44,33 +44,6 @@ def set_value_attribute():
     pass
 
 
-# def list_all_word():
-#     """
-#     处理字典value的同时，把所有单词列成一个list
-#     """
-#     global word_list
-#     Fobj = open("my.html", "r", encoding="utf-8")
-#     data = Fobj.read()
-#     Fobj.close()
-
-#     soup = BeautifulSoup(data)
-#     # 先找出所有的idx:entry
-#     entrylist = soup.findAll("idx:entry")
-#     for entry in entrylist:
-#         # 单词
-#         the_word = entry.word.get_text()
-#         # 过滤，如把ABC1改成ABC，如果最后一个字符是数字，就去掉
-#         if the_word[-1] <= '9' and the_word[-1] >= '0':
-#             the_word = the_word[:-1]
-#         # 再做一次
-#         if the_word[-1] <= '9' and the_word[-1] >= '0':
-#             the_word = the_word[:-1]
-#         # 赋给value
-#         entry.find('idx:orth')['value'] = the_word
-#         #print(the_word)
-#         word_list.append(the_word)
-
-
 def split_infl_line(line):
     """
     处理infl_list文件中的一行
